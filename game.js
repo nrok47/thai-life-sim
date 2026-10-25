@@ -17,6 +17,9 @@ function makeRng(seed) {
 }
 const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
 
+// ไอคอนสำหรับแสดงผลสั้นๆ ในป้ายสถานะและตัวเลือก (ไม่ผูกกับข้อมูล GAMEDATA)
+const STAT_ICONS = { phys: "❤️", mind: "😊", lit: "📘", env: "🌳" };
+
 // ---------- สถานะเกม ----------
 const G = {
   rng: null,
@@ -221,20 +224,19 @@ function tick() {
   yearlyDrift();
   wealthDrift();
 
-  // หมุดเหตุการณ์ของปีนี้
-  const ms = eligible(MILESTONES, false);
-  if (ms.length && G.rng() < 0.8) {
-    const m = weightedPick(ms);
-    G.used.add(m.id);
-    applyEffect(m.effect);
-    (m.flag || []).forEach((f) => G.flags.add(f));
-    addLog(fillText(m.text), m.tone, m.stat);
+  // การ์ดตัดสินใจ — มีผลให้เลือกจริง ให้สิทธิ์ก่อนเสมอถ้ามี
+  const evs = eligible(EVENTS, true);
+  if (evs.length && G.rng() < 0.6) {
+    G.pending = { kind: "event", data: weightedPick(evs) };
+    render();
+    if (G.auto) scheduleAutoChoice();
+    return;
   }
 
-  // การ์ดตัดสินใจ — ไม่เกินปีละใบ
-  const evs = eligible(EVENTS, true);
-  if (evs.length && G.rng() < 0.35) {
-    G.pending = weightedPick(evs);
+  // หมุดเหตุการณ์ของปีนี้ — ไม่มีให้เลือกจริง (เป็นสิ่งที่เกิดแล้ว) แต่ยังโผล่หน้าจอให้เห็น ไม่ใช่แค่ log เงียบๆ
+  const ms = eligible(MILESTONES, false);
+  if (ms.length && G.rng() < 0.8) {
+    G.pending = { kind: "milestone", data: weightedPick(ms) };
     render();
     if (G.auto) scheduleAutoChoice();
     return;
@@ -243,16 +245,54 @@ function tick() {
   render();
 }
 
+// ---------- กลไกสถานะผูกกับเหตุการณ์: option.requireStat ล็อกตัวเลือก / option.odds ปรับ % สำเร็จตามสถานะ ----------
+function statLabel(id) { const s = W.stats.find((x) => x.id === id); return s ? s.label : id; }
+
+function meetsRequire(opt) {
+  if (!opt.requireStat) return true;
+  return (G.stats[opt.requireStat.stat] ?? 0) >= opt.requireStat.min;
+}
+
+function oddsPct(opt) {
+  if (!opt.odds) return null;
+  const { stat, base, scale, cap } = opt.odds;
+  const v = G.stats[stat] ?? 0;
+  return Math.max(0, Math.min(cap ?? 1, base + v * scale));
+}
+
 function choose(idx) {
-  const ev = G.pending;
-  if (!ev) return;
+  const pend = G.pending;
+  if (!pend) return;
   clearTimeout(G.autoTimer);
+
+  if (pend.kind === "milestone") {
+    const m = pend.data;
+    G.used.add(m.id);
+    applyEffect(m.effect);
+    (m.flag || []).forEach((f) => G.flags.add(f));
+    addLog(fillText(m.text), m.tone, m.stat);
+    G.pending = null;
+    render();
+    return;
+  }
+
+  const ev = pend.data;
   const opt = ev.options[idx];
+  if (!meetsRequire(opt) || !canAfford(opt.money)) return;
   G.used.add(ev.id);
-  applyEffect(opt.effect);
-  (opt.flag || []).forEach((f) => G.flags.add(f));
-  const good = Object.values(opt.effect || {}).reduce((a, b) => a + b, 0) >= 0;
-  addLog(good ? ev.log.good : ev.log.bad, good ? "good" : "bad", ev.stat);
+
+  if (opt.odds) {
+    const p = oddsPct(opt);
+    const success = G.rng() < p;
+    applyEffect(success ? (opt.successEffect || opt.effect) : (opt.failEffect || {}));
+    if (success) (opt.flag || []).forEach((f) => G.flags.add(f));
+    addLog(success ? ev.log.good : ev.log.bad, success ? "good" : "bad", ev.stat);
+  } else {
+    applyEffect(opt.effect);
+    (opt.flag || []).forEach((f) => G.flags.add(f));
+    const good = Object.values(opt.effect || {}).reduce((a, b) => a + b, 0) >= 0;
+    addLog(good ? ev.log.good : ev.log.bad, good ? "good" : "bad", ev.stat);
+  }
   addLog(`${ev.title} · การตัดสินใจ: ${opt.label}`, "sub", null);
   G.pending = null;
   render();
@@ -260,11 +300,14 @@ function choose(idx) {
 
 function scheduleAutoChoice() {
   // เลือกตัวเลือกที่ดีต่อสถานะรวมที่สุด — เลียนแบบปุ่ม "ให้ตัดสินใจอัตโนมัติ" ของต้นแบบ
-  const ev = G.pending;
+  const pend = G.pending;
+  if (pend.kind === "milestone") { G.autoTimer = setTimeout(() => choose(0), 1200); return; }
+  const ev = pend.data;
   let best = 0, bestScore = -Infinity;
   ev.options.forEach((o, i) => {
-    if (!canAfford(o.money)) return;
-    const s = Object.values(o.effect || {}).reduce((a, b) => a + b, 0);
+    if (!canAfford(o.money) || !meetsRequire(o)) return;
+    const eff = o.odds ? (o.successEffect || o.effect) : o.effect;
+    const s = Object.values(eff || {}).reduce((a, b) => a + b, 0) * (o.odds ? oddsPct(o) : 1);
     if (s > bestScore) { bestScore = s; best = i; }
   });
   G.autoTimer = setTimeout(() => choose(best), 2200);
@@ -373,6 +416,22 @@ function rerollBirth() {
   renderBirthCard();
 }
 
+const LIFE_SPAN_REF = 90; // เส้นอ้างอิงแถบอายุเทียบชีวิต ไม่ใช่ตารางชีพจริง (ดู LT_ROWS สำหรับโอกาสตายจริง)
+
+function currentStage() {
+  return STAGES.find((s) => G.age >= s.from && G.age <= s.to) || STAGES[STAGES.length - 1];
+}
+
+function deltaBadgesHtml(effect) {
+  if (!effect) return "";
+  const parts = Object.entries(effect).filter(([, v]) => v).map(([k, v]) => {
+    const cls = v > 0 ? "up" : "down";
+    const sign = v > 0 ? "+" : "";
+    return `<span class="${cls}">${STAT_ICONS[k] || ""}${sign}${v}</span>`;
+  });
+  return parts.length ? `<div class="deltas">${parts.join("")}</div>` : "";
+}
+
 function render() {
   $("age").textContent = G.age;
   renderStageTrack();
@@ -383,13 +442,14 @@ function render() {
     (WEALTH.verified ? "" : ' <span class="draft">ยังไม่ยืนยัน</span>');
 
   renderChibi();
+  $("lifebar-fill").style.width = `${Math.min(100, Math.round((G.age / LIFE_SPAN_REF) * 100))}%`;
 
-  $("bars").innerHTML = W.stats.map((s) => `
-    <div class="bar">
-      <span class="bl">${esc(s.label)}</span>
+  $("statbadges").innerHTML = W.stats.map((s) => `
+    <span class="sbadge" title="${esc(s.label)}">
+      <span class="sicon">${STAT_ICONS[s.id] || ""}</span>
+      <span class="strack"><i style="width:${Math.round(G.stats[s.id])}%;background:${s.color}"></i></span>
       <b>${Math.round(G.stats[s.id])}</b>
-      <i style="width:${Math.round(G.stats[s.id])}%;background:${s.color}"></i>
-    </div>`).join("");
+    </span>`).join("");
 
   $("log").innerHTML = G.log.map((l) => `
     <div class="le ${l.tone}">
@@ -399,21 +459,47 @@ function render() {
 
   const card = $("card");
   if (!G.pending) { card.hidden = true; return; }
-  const ev = G.pending;
   card.hidden = false;
+  const stageLabel = currentStage().label;
+
+  if (G.pending.kind === "milestone") {
+    const m = G.pending.data;
+    card.innerHTML = `
+      <div class="chead">เหตุการณ์ชีวิต · ${esc(stageLabel)} · อายุ ${G.age} ปี</div>
+      <h2>${esc(fillText(m.text))}</h2>
+      ${deltaBadgesHtml(m.effect)}
+      ${statBoxHtml(m.stat)}
+      <div class="opts"><button class="opt" data-i="0"><span class="left"><span class="n">1</span><b>ไปต่อ</b></span></button></div>`;
+    card.querySelectorAll(".opt").forEach((b) =>
+      b.addEventListener("click", () => choose(Number(b.dataset.i))));
+    return;
+  }
+
+  const ev = G.pending.data;
   card.innerHTML = `
-    <div class="chead">การตัดสินใจครั้งสำคัญ · อายุ ${G.age} ปี</div>
+    <div class="chead">ตัดสินใจหลัก · ${esc(stageLabel)} · อายุ ${G.age} ปี</div>
     <h2>${esc(ev.title)}</h2>
     <p>${esc(ev.body)}</p>
     ${statBoxHtml(ev.stat)}
     <div class="opts">${ev.options.map((o, i) => {
-      const ok = canAfford(o.money);
+      const affordOk = canAfford(o.money);
+      const reqOk = meetsRequire(o);
+      const ok = affordOk && reqOk;
+      const pct = o.odds ? Math.round(oddsPct(o) * 100) : null;
+      const rightBits = [];
+      if (pct !== null) rightBits.push(`<span class="odds">สำเร็จ ${pct}%</span>`);
+      if (o.money) rightBits.push(`<span class="cost">฿${o.money.toLocaleString("th-TH")}</span>`);
+      if (!reqOk) rightBits.push(`<span class="lock">🔒 ต้องมี${esc(o.requireStat.label || statLabel(o.requireStat.stat))} ≥ ${o.requireStat.min}</span>`);
+      else if (!affordOk) rightBits.push(`<span class="lock">🔒 เงินไม่พอ</span>`);
       return `<button class="opt" data-i="${i}"${ok ? "" : " disabled"}>
-        <span class="n">${i + 1}</span>
-        <span><b>${esc(o.label)}</b><em>${ok ? esc(o.hint || "") : "เงินไม่พอในฐานะตอนนี้"}</em></span>
+        <span class="left">
+          <span class="n">${i + 1}</span>
+          <span><b>${esc(o.label)}</b>${o.hint ? `<em>${esc(o.hint)}</em>` : ""}${deltaBadgesHtml(o.odds ? (o.successEffect || o.effect) : o.effect)}</span>
+        </span>
+        <span class="right">${rightBits.join("")}</span>
       </button>`;
     }).join("")}</div>
-    ${ev.hotline ? `<div class="hot">ขอความช่วยเหลือได้: ${esc(ev.hotline)}</div>` : ""}
+    ${ev.hotline ? `<div class="hot">☎️ ขอความช่วยเหลือได้: ${esc(ev.hotline)}</div>` : ""}
     <button class="autobtn">${G.auto ? "ปิดการตัดสินใจอัตโนมัติ" : "ให้ตัดสินใจอัตโนมัติตั้งแต่นี้ไป"}</button>`;
   card.querySelectorAll(".opt").forEach((b) =>
     b.addEventListener("click", () => choose(Number(b.dataset.i))));

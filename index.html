@@ -24,12 +24,18 @@
   body{margin:0;background:var(--bg);color:var(--fg);
     font-family:"Noto Sans Thai","Sarabun",system-ui,-apple-system,sans-serif;
     line-height:1.65;padding:0 var(--gut) 48px}
-  .wrap{max-width:760px;margin:0 auto}
+  .wrap{max-width:980px;margin:0 auto}
 
   header{position:sticky;top:0;background:var(--bg);padding:12px 0 8px;border-bottom:1px solid var(--line);z-index:5}
   .agerow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
   .agerow b{font-size:2.2rem;line-height:1}
   .agerow span{color:var(--muted);font-size:.9rem}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+  #statbadges{display:flex;gap:12px;flex-wrap:wrap;font-size:.86rem}
+  .sbadge{display:flex;align-items:center;gap:5px;white-space:nowrap}
+  .sbadge .sicon{font-size:1rem}
+  .sbadge .strack{width:38px;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+  .sbadge .strack i{display:block;height:100%}
   .speeds{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .sp,.focuswrap select{font:inherit;font-size:.9rem;padding:5px 12px;border:1px solid var(--line);
     background:var(--card);color:var(--fg);border-radius:8px;cursor:pointer}
@@ -39,7 +45,12 @@
   #wealth{margin-top:8px;font-size:.88rem}
   #wealth em{font-style:normal;color:var(--muted)}
 
-  #chibi{display:flex;align-items:center;gap:14px;margin:10px 0 4px}
+  .stage-grid{display:grid;grid-template-columns:minmax(220px,340px) 1fr;gap:16px;margin-top:14px;align-items:start}
+  @media (max-width:640px){.stage-grid{grid-template-columns:1fr}}
+
+  .scenebox{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;
+    display:flex;flex-direction:column;align-items:center;gap:10px}
+  #chibi{display:flex;flex-direction:column;align-items:center;gap:8px}
   #chibi svg{width:92px;height:128px;flex:none;transition:filter .5s}
   #chibi-aura{transition:fill .6s,opacity .6s}
   #chibi-head,#chibi-body-shape{transition:fill .6s}
@@ -51,27 +62,35 @@
   #chibi.good-mood #chibi-arm-l{transform:rotate(-18deg)}
   #chibi.good-mood #chibi-arm-r{transform:rotate(18deg)}
   #chibi.bad-mood #chibi-head{transform:translateY(3px)}
-  #chibi-caption{font-size:.85rem;color:var(--muted)}
+  #chibi-caption{font-size:.85rem;color:var(--muted);text-align:center}
   #chibi-caption b{color:var(--fg);display:block;font-size:.95rem;margin-bottom:2px}
+  .lifebar{width:100%;height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+  .lifebar i{display:block;height:100%;background:var(--statline)}
+  .lifebar-cap{font-size:.74rem;color:var(--muted)}
 
-  #bars{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
-  .bar{font-size:.85rem}
-  .bar .bl{color:var(--muted)}
-  .bar b{float:right}
-  .bar i{display:block;height:4px;border-radius:2px;margin-top:4px;min-width:2px}
-
-  #card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0;
-    box-shadow:0 8px 28px rgba(0,0,0,.09)}
-  .chead{color:var(--accent);font-size:.82rem;letter-spacing:.02em}
-  #card h2{margin:.3em 0 .4em;font-size:1.45rem}
+  #card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:0 8px 28px rgba(0,0,0,.09);align-self:stretch}
+  .chead{color:var(--accent);font-size:.78rem;letter-spacing:.02em;text-transform:uppercase}
+  #card h2{margin:.3em 0 .4em;font-size:1.3rem}
   #card p{margin:0 0 14px}
   .opts{display:grid;gap:10px}
-  .opt{display:flex;gap:12px;align-items:flex-start;text-align:start;width:100%;
+  .opt{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;text-align:start;width:100%;
     font:inherit;color:inherit;background:transparent;border:1px solid var(--line);
     border-radius:10px;padding:12px 14px;cursor:pointer}
-  .opt:hover{border-color:var(--accent)}
+  .opt:hover:not(:disabled){border-color:var(--accent)}
+  .opt:disabled{opacity:.55;cursor:not-allowed}
+  .opt .left{display:flex;gap:12px;align-items:flex-start;min-width:0}
   .opt .n{color:var(--muted);min-width:1em}
-  .opt em{display:block;font-style:normal;color:var(--muted);font-size:.87rem}
+  .opt b{display:block}
+  .opt em{display:block;font-style:normal;color:var(--muted);font-size:.87rem;margin-top:2px}
+  .opt .deltas{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;font-size:.82rem}
+  .opt .deltas span{display:inline-flex;align-items:center;gap:2px}
+  .opt .deltas .up{color:#2f855a}
+  .opt .deltas .down{color:#9b2c2c}
+  .opt .right{flex:none;text-align:end;font-size:.78rem;color:var(--muted);display:flex;flex-direction:column;gap:3px;align-items:flex-end}
+  .opt .odds{color:var(--statline);font-weight:600}
+  .opt .cost{color:#c9a227}
+  .opt .lock{color:#9b2c2c}
   .autobtn{margin-top:12px;width:100%;font:inherit;font-size:.9rem;padding:9px;
     background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:9px;cursor:pointer}
   .hot{margin-top:12px;font-size:.87rem;color:var(--accent)}
@@ -137,7 +156,10 @@
   <section id="birthcard" hidden></section>
 
   <header hidden id="hdr">
-    <div class="agerow"><b id="age">0</b><span>ปี</span><span id="who"></span></div>
+    <div class="topbar">
+      <div class="agerow"><b id="age">0</b><span>ปี</span><span id="who"></span></div>
+      <div id="statbadges"></div>
+    </div>
     <div id="stagetrack"></div>
     <div class="speeds">
       <button class="sp" data-s="0">หยุด</button>
@@ -151,23 +173,28 @@
     <div id="wealth"></div>
   </header>
 
-  <div id="chibi">
-    <svg viewBox="0 0 120 170" aria-hidden="true">
-      <circle id="chibi-aura" cx="60" cy="90" r="58" opacity=".18"></circle>
-      <rect id="chibi-leg-l" x="46" y="128" width="10" height="34" rx="5"></rect>
-      <rect id="chibi-leg-r" x="64" y="128" width="10" height="34" rx="5"></rect>
-      <g id="chibi-arm-l"><rect x="20" y="78" width="10" height="38" rx="5"></rect></g>
-      <g id="chibi-arm-r"><rect x="90" y="78" width="10" height="38" rx="5"></rect></g>
-      <rect id="chibi-body-shape" x="36" y="70" width="48" height="60" rx="20" fill="#8c1d33"></rect>
-      <circle id="chibi-head" cx="60" cy="42" r="28" fill="#f5cba7"></circle>
-      <circle class="chibi-eye" cx="50" cy="40" r="3"></circle>
-      <circle class="chibi-eye" cx="70" cy="40" r="3"></circle>
-      <path id="chibi-mouth" d="M 50 52 Q 60 58 70 52"></path>
-    </svg>
-    <div id="chibi-caption"></div>
+  <div class="stage-grid">
+    <div class="scenebox">
+      <div id="chibi">
+        <svg viewBox="0 0 120 170" aria-hidden="true">
+          <circle id="chibi-aura" cx="60" cy="90" r="58" opacity=".18"></circle>
+          <rect id="chibi-leg-l" x="46" y="128" width="10" height="34" rx="5"></rect>
+          <rect id="chibi-leg-r" x="64" y="128" width="10" height="34" rx="5"></rect>
+          <g id="chibi-arm-l"><rect x="20" y="78" width="10" height="38" rx="5"></rect></g>
+          <g id="chibi-arm-r"><rect x="90" y="78" width="10" height="38" rx="5"></rect></g>
+          <rect id="chibi-body-shape" x="36" y="70" width="48" height="60" rx="20" fill="#8c1d33"></rect>
+          <circle id="chibi-head" cx="60" cy="42" r="28" fill="#f5cba7"></circle>
+          <circle class="chibi-eye" cx="50" cy="40" r="3"></circle>
+          <circle class="chibi-eye" cx="70" cy="40" r="3"></circle>
+          <path id="chibi-mouth" d="M 50 52 Q 60 58 70 52"></path>
+        </svg>
+        <div id="chibi-caption"></div>
+      </div>
+      <div class="lifebar"><i id="lifebar-fill"></i></div>
+      <div class="lifebar-cap">เทียบกับช่วงชีวิตที่เป็นไปได้</div>
+    </div>
+    <div id="card" hidden></div>
   </div>
-  <div id="bars"></div>
-  <div id="card" hidden></div>
   <section id="ending" hidden></section>
 
   <h3 class="lh">บันทึกชีวิต</h3>
