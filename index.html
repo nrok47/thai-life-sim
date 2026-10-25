@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>1 ใน 66 ล้าน — ต้นแบบเฟส 1</title>
+<style>
+  :root{
+    --bg:#faf7f4; --fg:#1f2328; --muted:#6b7280; --line:#e3ded8;
+    --card:#ffffff; --accent:#8c1d33; --statbg:#edf6f4; --statline:#2c7a7b;
+    --gut:max(16px, env(safe-area-inset-left));
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#15171a; --fg:#e8e6e3; --muted:#9aa0a6; --line:#2d3238;
+      --card:#1d2024; --accent:#e06b84; --statbg:#17292b; --statline:#4fd1c5;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15171a; --fg:#e8e6e3; --muted:#9aa0a6; --line:#2d3238;
+    --card:#1d2024; --accent:#e06b84; --statbg:#17292b; --statline:#4fd1c5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font-family:"Noto Sans Thai","Sarabun",system-ui,-apple-system,sans-serif;
+    line-height:1.65;padding:0 var(--gut) 48px}
+  .wrap{max-width:760px;margin:0 auto}
+
+  header{position:sticky;top:0;background:var(--bg);padding:12px 0 8px;border-bottom:1px solid var(--line);z-index:5}
+  .agerow{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .agerow b{font-size:2.2rem;line-height:1}
+  .agerow span{color:var(--muted);font-size:.9rem}
+  .speeds{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .sp,.focuswrap select{font:inherit;font-size:.9rem;padding:5px 12px;border:1px solid var(--line);
+    background:var(--card);color:var(--fg);border-radius:8px;cursor:pointer}
+  .sp.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+  .focuswrap{margin-top:8px}
+  .focuswrap select{width:100%;max-width:340px}
+  #wealth{margin-top:8px;font-size:.88rem}
+  #wealth em{font-style:normal;color:var(--muted)}
+
+  #chibi{display:flex;align-items:center;gap:14px;margin:10px 0 4px}
+  #chibi svg{width:92px;height:128px;flex:none;transition:filter .5s}
+  #chibi-aura{transition:fill .6s,opacity .6s}
+  #chibi-head,#chibi-body-shape{transition:fill .6s}
+  .chibi-eye{fill:#2a2322}
+  #chibi-mouth{fill:none;stroke:#2a2322;stroke-width:2.4;stroke-linecap:round;transition:d .4s}
+  #chibi-arm-l,#chibi-arm-r{transform-box:fill-box;transform-origin:top center;transition:transform .5s}
+  #chibi-leg-l,#chibi-leg-r,#chibi-arm-l rect,#chibi-arm-r rect{fill:#4a4036}
+  #chibi.low-phys svg{filter:saturate(.55) brightness(.92)}
+  #chibi.good-mood #chibi-arm-l{transform:rotate(-18deg)}
+  #chibi.good-mood #chibi-arm-r{transform:rotate(18deg)}
+  #chibi.bad-mood #chibi-head{transform:translateY(3px)}
+  #chibi-caption{font-size:.85rem;color:var(--muted)}
+  #chibi-caption b{color:var(--fg);display:block;font-size:.95rem;margin-bottom:2px}
+
+  #bars{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:14px 0}
+  .bar{font-size:.85rem}
+  .bar .bl{color:var(--muted)}
+  .bar b{float:right}
+  .bar i{display:block;height:4px;border-radius:2px;margin-top:4px;min-width:2px}
+
+  #card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0;
+    box-shadow:0 8px 28px rgba(0,0,0,.09)}
+  .chead{color:var(--accent);font-size:.82rem;letter-spacing:.02em}
+  #card h2{margin:.3em 0 .4em;font-size:1.45rem}
+  #card p{margin:0 0 14px}
+  .opts{display:grid;gap:10px}
+  .opt{display:flex;gap:12px;align-items:flex-start;text-align:start;width:100%;
+    font:inherit;color:inherit;background:transparent;border:1px solid var(--line);
+    border-radius:10px;padding:12px 14px;cursor:pointer}
+  .opt:hover{border-color:var(--accent)}
+  .opt .n{color:var(--muted);min-width:1em}
+  .opt em{display:block;font-style:normal;color:var(--muted);font-size:.87rem}
+  .autobtn{margin-top:12px;width:100%;font:inherit;font-size:.9rem;padding:9px;
+    background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:9px;cursor:pointer}
+  .hot{margin-top:12px;font-size:.87rem;color:var(--accent)}
+
+  .statbox{background:var(--statbg);border-inline-start:3px solid var(--statline);
+    padding:10px 12px;border-radius:0 8px 8px 0;font-size:.86rem;margin:8px 0 2px}
+  .statbox .cite{display:block;color:var(--muted);font-size:.8rem;margin-top:4px}
+  .draft{display:inline-block;background:#f6e05e;color:#4a3800;font-size:.72rem;
+    padding:1px 7px;border-radius:5px;margin-inline-end:6px}
+  .warnbadge{display:inline-block;background:#9b2c2c;color:#fff;font-size:.72rem;
+    padding:1px 7px;border-radius:5px;margin-inline-end:6px}
+  .warntext{display:block;color:#9b2c2c;font-size:.8rem;margin-top:4px}
+
+  h3.lh{font-size:1.05rem;margin:22px 0 6px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .le{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .le .la{color:var(--muted);font-size:.8rem;min-width:4.4em;padding-top:3px}
+  .le.good .lt{color:#2f855a}
+  .le.bad .lt{color:#9b2c2c}
+  .le.sub{opacity:.6;font-size:.86rem}
+
+  #intro,#ending,#birthcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin:22px 0}
+  #intro h1{margin:0 0 .2em;font-size:1.6rem}
+  #birthcard h2{margin:.2em 0 .6em;font-size:1.3rem}
+  .birthrow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+  .birthrow span:first-child{color:var(--muted)}
+  .fortunebox{background:var(--statbg);border-inline-start:3px solid var(--statline);
+    padding:10px 12px;border-radius:0 8px 8px 0;font-size:.88rem;margin:14px 0}
+  .fortunebox .tag{display:block;color:var(--muted);font-size:.76rem;margin-bottom:4px}
+  .raritybox{font-size:.95rem;margin:10px 0 4px}
+  .raritybox b{color:var(--accent)}
+
+  #stagetrack{display:flex;gap:2px;margin-top:10px}
+  .stage{flex:1;text-align:center;font-size:.72rem;color:var(--muted);padding:4px 2px 0;
+    border-top:4px solid var(--line);cursor:pointer}
+  .stage.on{color:var(--fg);border-top-color:var(--accent);font-weight:600}
+  .tag{color:var(--muted);font-size:.92rem}
+  #disc-intro{white-space:pre-line;font-size:.86rem;color:var(--muted);
+    border-inline-start:3px solid var(--line);padding-inline-start:12px;margin:16px 0}
+  button.big{font:inherit;font-size:1rem;padding:12px 26px;border:0;border-radius:10px;
+    background:var(--accent);color:#fff;cursor:pointer}
+  #ending .years{color:var(--muted);letter-spacing:.08em;margin:.2em 0 1em}
+  #ending .sum{margin-top:14px}
+  #ending label{display:block;margin:16px 0 8px;font-size:.9rem}
+  #ending textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);
+    border-radius:9px;background:var(--bg);color:var(--fg)}
+  .erow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .erow button{font:inherit;padding:10px 18px;border:1px solid var(--line);border-radius:9px;
+    background:var(--card);color:var(--fg);cursor:pointer}
+  .disc{font-size:.8rem;color:var(--muted);white-space:pre-line;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="intro">
+    <h1>1 ใน 66 ล้าน</h1>
+    <p class="tag">ชีวิตหนึ่งชีวิตบนดาวอาสตร้า ตั้งแต่ลืมตาจนถึงวันสุดท้าย — ต้นแบบเฟส 1</p>
+    <p>ทุกกล่องสถิติในเกมนี้มีแหล่งอ้างอิงกำกับ ค่าที่ยังหาที่มาไม่ได้จะติดป้ายเหลืองว่า <span class="draft">ยังไม่ยืนยัน</span></p>
+    <div id="disc-intro"></div>
+    <button class="big" id="startbtn">เริ่มชีวิต</button>
+  </section>
+
+  <section id="birthcard" hidden></section>
+
+  <header hidden id="hdr">
+    <div class="agerow"><b id="age">0</b><span>ปี</span><span id="who"></span></div>
+    <div id="stagetrack"></div>
+    <div class="speeds">
+      <button class="sp" data-s="0">หยุด</button>
+      <button class="sp" data-s="1">1×</button>
+      <button class="sp" data-s="2">2×</button>
+      <button class="sp on" data-s="4">4×</button>
+      <button class="sp" data-s="8">8×</button>
+      <button class="sp" data-s="16">16×</button>
+    </div>
+    <div class="focuswrap"><select id="focus"></select></div>
+    <div id="wealth"></div>
+  </header>
+
+  <div id="chibi">
+    <svg viewBox="0 0 120 170" aria-hidden="true">
+      <circle id="chibi-aura" cx="60" cy="90" r="58" opacity=".18"></circle>
+      <rect id="chibi-leg-l" x="46" y="128" width="10" height="34" rx="5"></rect>
+      <rect id="chibi-leg-r" x="64" y="128" width="10" height="34" rx="5"></rect>
+      <g id="chibi-arm-l"><rect x="20" y="78" width="10" height="38" rx="5"></rect></g>
+      <g id="chibi-arm-r"><rect x="90" y="78" width="10" height="38" rx="5"></rect></g>
+      <rect id="chibi-body-shape" x="36" y="70" width="48" height="60" rx="20" fill="#8c1d33"></rect>
+      <circle id="chibi-head" cx="60" cy="42" r="28" fill="#f5cba7"></circle>
+      <circle class="chibi-eye" cx="50" cy="40" r="3"></circle>
+      <circle class="chibi-eye" cx="70" cy="40" r="3"></circle>
+      <path id="chibi-mouth" d="M 50 52 Q 60 58 70 52"></path>
+    </svg>
+    <div id="chibi-caption"></div>
+  </div>
+  <div id="bars"></div>
+  <div id="card" hidden></div>
+  <section id="ending" hidden></section>
+
+  <h3 class="lh">บันทึกชีวิต</h3>
+  <div id="log"></div>
+</div>
+
+<script src="data.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
